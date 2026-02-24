@@ -18,13 +18,14 @@ const params = {
   rotationSpeed: 2,
   depthAmount: 0.4,
   alternateRotation: true,
-  interactive: true
+  interactive: true,
+  bgColor: '#050510',
+  polygonSides: 3
 };
 
 let activeCells = {};
 
 const sketch = ({ context, width, height, canvas }) => {
-
   const pane = new Pane();
   pane.addInput(params, 'cols', { min: 2, max: 15, step: 1 });
   pane.addInput(params, 'rows', { min: 2, max: 15, step: 1 });
@@ -38,10 +39,25 @@ const sketch = ({ context, width, height, canvas }) => {
   pane.addInput(params, 'depthAmount', { min: 0, max: 1 });
   pane.addInput(params, 'alternateRotation');
   pane.addInput(params, 'interactive');
+  pane.addInput(params, 'bgColor');
+  pane.addInput(params, 'polygonSides', { min: 3, max: 8, step: 1 });
 
   pane.addButton({ title: 'Reset Active Cells' }).on('click', () => {
     activeCells = {};
   });
+
+  const getGridDimensions = () => {
+    const cols = params.cols;
+    const rows = params.rows;
+    const gap = width * params.gap;
+    const w = width / (cols + 2);
+    const h = w;
+    const totalW = cols * w + (cols - 1) * gap;
+    const totalH = rows * h + (rows - 1) * gap;
+    const startX = (width - totalW) / 2;
+    const startY = (height - totalH) / 2;
+    return { w, h, gap, startX, startY, cols, rows };
+  };
 
   canvas.addEventListener('mousedown', (e) => {
     if (!params.interactive) return;
@@ -50,22 +66,12 @@ const sketch = ({ context, width, height, canvas }) => {
     const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-    const cols = params.cols;
-    const rows = params.rows;
-    const gap = width * params.gap;
-    const w = width / (cols + 2);
-    const h = w;
-
-    const totalW = cols * w + (cols - 1) * gap;
-    const totalH = rows * h + (rows - 1) * gap;
-    const startX = (width - totalW) / 2;
-    const startY = (height - totalH) / 2;
+    const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
 
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
         const x = startX + i * (w + gap);
         const y = startY + j * (h + gap);
-
         if (mx > x && mx < x + w && my > y && my < y + h) {
           const key = `${i}-${j}`;
           activeCells[key] = !activeCells[key];
@@ -74,25 +80,49 @@ const sketch = ({ context, width, height, canvas }) => {
     }
   });
 
-  return ({ time }) => {
+  canvas.addEventListener('mousemove', (e) => {
+    if (!params.interactive) return;
 
-    context.fillStyle = '#050510';
-    context.fillRect(0, 0, width, height);
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-    const cols = params.cols;
-    const rows = params.rows;
-    const gap = width * params.gap;
-    const w = width / (cols + 2);
-    const h = w;
-
-    const totalW = cols * w + (cols - 1) * gap;
-    const totalH = rows * h + (rows - 1) * gap;
-    const startX = (width - totalW) / 2;
-    const startY = (height - totalH) / 2;
+    const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
 
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
+        const key = `${i}-${j}`;
+        const x = startX + i * (w + gap);
+        const y = startY + j * (h + gap);
+        if (mx > x && mx < x + w && my > y && my < y + h) {
+          activeCells[key] = true;
+        } else if (!e.buttons) {
+          activeCells[key] = false;
+        }
+      }
+    }
+  });
 
+  const drawPolygon = (ctx, sides, radius) => {
+    ctx.beginPath();
+    for (let i = 0; i < sides; i++) {
+      const angle = (i / sides) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  };
+
+  return ({ time }) => {
+    context.clearRect(0, 0, width, height);
+
+    const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
+
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
         const x = startX + i * (w + gap);
         const y = startY + j * (h + gap);
         const offset = (i + j) * 0.5;
@@ -101,16 +131,15 @@ const sketch = ({ context, width, height, canvas }) => {
         const scale = 1 + depth * params.depthAmount;
 
         const hue = (time * params.colorSpeed + i * 25 + j * 25) % 360;
-        const neonColor = `hsl(${hue}, 100%, 60%)`;
+        const saturation = 80 + 20 * Math.sin(time + offset);
+        const lightness = 50 + 10 * Math.sin(time * 2 + offset);
+        const neonColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 
         context.save();
         context.translate(x + w / 2, y + h / 2);
 
         const key = `${i}-${j}`;
-        const direction =
-          params.alternateRotation
-            ? ((i + j) % 2 === 0 ? 1 : -1)
-            : 1;
+        const direction = params.alternateRotation ? ((i + j) % 2 === 0 ? 1 : -1) : 1;
 
         if (!params.interactive || activeCells[key]) {
           context.rotate(time * params.rotationSpeed * direction);
@@ -123,17 +152,18 @@ const sketch = ({ context, width, height, canvas }) => {
         context.shadowBlur = params.glowStrength * scale;
         context.shadowColor = neonColor;
 
+     
         context.beginPath();
         context.rect(-w / 2, -h / 2, w, h);
         context.stroke();
 
-        const radius =
-          w * params.shapeScale *
-          Math.abs(Math.sin(time * params.pulseSpeed + offset));
-
+      
+        const radius = w * params.shapeScale * Math.abs(Math.sin(time * params.pulseSpeed + offset));
         context.beginPath();
         context.arc(0, 0, radius, 0, Math.PI * 2);
         context.stroke();
+
+        drawPolygon(context, params.polygonSides, radius);
 
         context.restore();
       }

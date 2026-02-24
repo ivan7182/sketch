@@ -23,7 +23,7 @@ const params = {
   foreground: '#ff0040',
   audioReactive: true,
   audioStrength: 2,
-  lineCap: 'round', // default lineCap
+  lineCap: 'round', 
 };
 
 let audioContext, analyser, dataArray;
@@ -33,7 +33,7 @@ const createAudio = async () => {
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 256;
 
-  const response = await fetch('music.mp3'); // ganti file sendiri
+  const response = await fetch('music.mp3'); 
   const arrayBuffer = await response.arrayBuffer();
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
@@ -67,7 +67,7 @@ const sketch = () => {
       for (let i = 0; i < dataArray.length; i++) {
         sum += dataArray[i];
       }
-      audioLevel = sum / dataArray.length / 255; // normalize 0-1
+      audioLevel = sum / dataArray.length / 255; 
     }
 
     const cols = params.cols;
@@ -102,7 +102,7 @@ const sketch = () => {
         context.rotate(angle);
 
         context.lineWidth = scale;
-        context.lineCap = params.lineCap; // <-- lineCap dari Tweakpane
+        context.lineCap = params.lineCap; 
 
         const dynamicColor = Color.offsetHSL(
           params.foreground,

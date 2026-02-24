@@ -28,7 +28,6 @@ const sketch = ({ canvas, width, height }) => {
 
   canvasElement = canvas;
 
-  // 🎛 UI
   pane = new Pane();
   const folder = pane.addFolder({ title: 'ASCII Settings' });
 
@@ -139,7 +138,7 @@ const getGlyph = (v) => {
   return glyphs[index];
 };
 
-// 🎥 RECORDING
+
 function startRecording() {
 
   if (!canvasElement) return;
@@ -185,7 +184,7 @@ function stopRecording() {
   }
 }
 
-// 🎥 WEBCAM
+
 const setupWebcam = async () => {
   video = document.createElement('video');
   video.autoplay = true;
