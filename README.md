@@ -13,5 +13,5 @@ animate AudioReact
 animate ascii
 [🎥 Sketch-ascii](./ascii/video.mp4)
 
-animate ascii
-[🎥 Sketch-ascii](./random/random.mp4)
+animate random
+[🎥 Sketch-random](./random/random.mp4)
