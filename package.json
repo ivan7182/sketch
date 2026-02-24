@@ -16,7 +16,8 @@
     "color-parse": "^2.0.2",
     "colormap": "^2.3.2",
     "eases": "^1.0.8",
+    "face-api.js": "^0.22.2",
     "riso-colors": "^1.0.1",
-    "tweakpane": "^3.1.0"
+    "tweakpane": "^3.1.10"
   }
 }
