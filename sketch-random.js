@@ -41,7 +41,6 @@ const sketch = ({ context, width, height, canvas }) => {
   pane.addInput(params, 'interactive');
   pane.addInput(params, 'bgColor');
   pane.addInput(params, 'polygonSides', { min: 3, max: 8, step: 1 });
-
   pane.addButton({ title: 'Reset Active Cells' }).on('click', () => {
     activeCells = {};
   });
@@ -61,13 +60,11 @@ const sketch = ({ context, width, height, canvas }) => {
 
   canvas.addEventListener('mousedown', (e) => {
     if (!params.interactive) return;
-
     const rect = canvas.getBoundingClientRect();
     const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
     const my = (e.clientY - rect.top) * (canvas.height / rect.height);
 
     const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
-
     for (let i = 0; i < cols; i++) {
       for (let j = 0; j < rows; j++) {
         const x = startX + i * (w + gap);
@@ -75,29 +72,6 @@ const sketch = ({ context, width, height, canvas }) => {
         if (mx > x && mx < x + w && my > y && my < y + h) {
           const key = `${i}-${j}`;
           activeCells[key] = !activeCells[key];
-        }
-      }
-    }
-  });
-
-  canvas.addEventListener('mousemove', (e) => {
-    if (!params.interactive) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-    const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
-
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        const key = `${i}-${j}`;
-        const x = startX + i * (w + gap);
-        const y = startY + j * (h + gap);
-        if (mx > x && mx < x + w && my > y && my < y + h) {
-          activeCells[key] = true;
-        } else if (!e.buttons) {
-          activeCells[key] = false;
         }
       }
     }
@@ -117,7 +91,8 @@ const sketch = ({ context, width, height, canvas }) => {
   };
 
   return ({ time }) => {
-    context.clearRect(0, 0, width, height);
+    context.fillStyle = params.bgColor;
+    context.fillRect(0, 0, width, height);
 
     const { w, h, gap, startX, startY, cols, rows } = getGridDimensions();
 
@@ -127,7 +102,11 @@ const sketch = ({ context, width, height, canvas }) => {
         const y = startY + j * (h + gap);
         const offset = (i + j) * 0.5;
 
-        const depth = Math.sin(time * params.pulseSpeed + offset);
+        const key = `${i}-${j}`;
+        const isActive = activeCells[key];
+
+        // scale pulsasi hanya kalau sel TIDAK aktif
+        const depth = isActive ? 0 : Math.sin(time * params.pulseSpeed + offset);
         const scale = 1 + depth * params.depthAmount;
 
         const hue = (time * params.colorSpeed + i * 25 + j * 25) % 360;
@@ -138,32 +117,32 @@ const sketch = ({ context, width, height, canvas }) => {
         context.save();
         context.translate(x + w / 2, y + h / 2);
 
-        const key = `${i}-${j}`;
         const direction = params.alternateRotation ? ((i + j) % 2 === 0 ? 1 : -1) : 1;
-
-        if (!params.interactive || activeCells[key]) {
+        if (!params.interactive || isActive) {
           context.rotate(time * params.rotationSpeed * direction);
         }
 
         context.scale(scale, scale);
-
         context.lineWidth = width * params.lineWidth * scale;
         context.strokeStyle = neonColor;
         context.shadowBlur = params.glowStrength * scale;
         context.shadowColor = neonColor;
 
-     
+        // rectangle
         context.beginPath();
         context.rect(-w / 2, -h / 2, w, h);
         context.stroke();
 
-      
+        // circle
         const radius = w * params.shapeScale * Math.abs(Math.sin(time * params.pulseSpeed + offset));
         context.beginPath();
         context.arc(0, 0, radius, 0, Math.PI * 2);
         context.stroke();
 
-        drawPolygon(context, params.polygonSides, radius);
+        // polygon hanya sel aktif
+        if (isActive) {
+          drawPolygon(context, params.polygonSides, radius);
+        }
 
         context.restore();
       }
